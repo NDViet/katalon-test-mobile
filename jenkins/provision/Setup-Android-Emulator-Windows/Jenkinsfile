@@ -1,0 +1,158 @@
+import hudson.model.*
+
+def utilsModule
+def paramsModule
+
+pipeline {
+    options {
+        skipDefaultCheckout()
+    }
+
+    agent {label params.AGENT_LABEL}
+
+    environment {
+        ANDROID_HOME = "C:\\Users\\%USERNAME%\\AppData\\Local\\Android\\Sdk"
+        ANDROID_SDK_ROOT = "${ANDROID_HOME}"
+        ANDROID_AVD_HOME = "C:\\Users\\%USERNAME%\\.android\\avd"
+        ANDROID_CMD_TOOL = "${ANDROID_HOME}\\cmdline-tools\\latest\\bin"
+        ANDROID_EMULATOR = "${ANDROID_HOME}\\emulator"
+        ANDROID_PLATFORM_TOOL = "${ANDROID_HOME}\\platform-tools"
+        ANDROID_CMD_TOOL_DOWNLOAD = "${params.ANDROID_CMD_TOOL_DOWNLOAD}"
+        ANDROID_SDK_MANAGER_NO_HTTPS = "${params.ANDROID_SDK_MANAGER_NO_HTTPS}"
+        ANDROID_SYSTEM_ABI = "${params.ANDROID_SYSTEM_ABI}"
+        ANDROID_EMULATOR_DEVICE_ID = "${params.ANDROID_EMULATOR_DEVICE_ID}"
+        ANDROID_EMULATOR_NAME = "${params.ANDROID_EMULATOR_NAME}"
+        ANDROID_PLATFORM_API = "${params.ANDROID_PLATFORM_API}"
+    }
+
+    stages {
+
+        stage("Initialize") {
+            steps {
+                script {
+                    checkout scm
+                    utilsModule = load "jenkins/shared-libraries/utils.groovy"
+                    paramsModule = load "jenkins/shared-libraries/parameters.groovy"
+                    paramsModule.parametersForProvisioningStartEmulator(utilsModule)
+                }
+            }
+        }
+
+        stage("Install Android Commandline Tools") {
+            when { expression { params.MOBILE_INSTALL_ANDROID_CMD_TOOL == true } }
+            steps {
+                script {
+                    try {
+                        utilsModule.executeCommand("curl -k \"${ANDROID_CMD_TOOL_DOWNLOAD}\" -o \"${ANDROID_HOME}\\commandlinetools.zip\"")
+                        utilsModule.executeCommand("powershell -Command \"Remove-Item \"${ANDROID_HOME}\\cmdline-tools\" -Recurse -Force -ErrorAction SilentlyContinue\"")
+                        utilsModule.executeCommand("powershell -Command \"Expand-Archive -Force \"${ANDROID_HOME}\\commandlinetools.zip\" -DestinationPath \"${ANDROID_HOME}\"\"")
+                        utilsModule.executeCommand("${ANDROID_HOME}\\cmdline-tools\\bin\\sdkmanager --sdk_root=${ANDROID_HOME} ${ANDROID_SDK_MANAGER_NO_HTTPS} \"cmdline-tools;latest\"")
+                    } catch (Exception e) {
+                        println e
+                    } finally {
+                        println utilsModule.executeCommand("dir ${ANDROID_HOME}")
+                        println utilsModule.executeCommand("dir ${ANDROID_CMD_TOOL}")
+                    }
+                }
+            }
+        }
+
+        stage("Install Android system image") {
+            when { expression { params.MOBILE_INSTALL_ANDROID_IMAGE == true } }
+            steps {
+                script {
+                    try {
+                        utilsModule.executeCommand("set ANDROID_HOME=${ANDROID_HOME}")
+                        utilsModule.executeCommand("${ANDROID_CMD_TOOL}\\sdkmanager --sdk_root=${ANDROID_HOME} ${ANDROID_SDK_MANAGER_NO_HTTPS} \"emulator\"")
+                        utilsModule.executeCommand("${ANDROID_CMD_TOOL}\\sdkmanager --sdk_root=${ANDROID_HOME} ${ANDROID_SDK_MANAGER_NO_HTTPS} \"platform-tools\"")
+                        utilsModule.executeCommand("${ANDROID_CMD_TOOL}\\sdkmanager --sdk_root=${ANDROID_HOME} ${ANDROID_SDK_MANAGER_NO_HTTPS} \"platforms;${ANDROID_PLATFORM_API}\"")
+                        utilsModule.executeCommand("${ANDROID_CMD_TOOL}\\sdkmanager --sdk_root=${ANDROID_HOME} ${ANDROID_SDK_MANAGER_NO_HTTPS} \"sources;${ANDROID_PLATFORM_API}\"")
+                        utilsModule.executeCommand("${ANDROID_CMD_TOOL}\\sdkmanager --sdk_root=${ANDROID_HOME} ${ANDROID_SDK_MANAGER_NO_HTTPS} \"system-images;${ANDROID_PLATFORM_API};google_apis_playstore;${ANDROID_SYSTEM_ABI}\"")
+                    } catch (Exception e) {
+                        println e
+                    } finally {
+                        println utilsModule.executeCommand("${ANDROID_CMD_TOOL}\\sdkmanager --sdk_root=${ANDROID_HOME} --list_installed")
+                    }
+                }
+            }
+        }
+
+        stage("Create default emulator") {
+            when { expression { params.MOBILE_INSTALL_ANDROID_EMULATOR_CREATE == true } }
+            steps {
+                script {
+                    try {
+                        utilsModule.executeCommand("set ANDROID_HOME=${ANDROID_HOME}")
+                        utilsModule.executeCommand("${ANDROID_CMD_TOOL}\\avdmanager --verbose create avd --force --name \"${ANDROID_EMULATOR_NAME}\" --package \"system-images;${ANDROID_PLATFORM_API};google_apis_playstore;${ANDROID_SYSTEM_ABI}\" --tag \"google_apis_playstore\" --abi \"${ANDROID_SYSTEM_ABI}\" --device \"${ANDROID_EMULATOR_DEVICE_ID}\"")
+                        utilsModule.executeCommand("copy ${WORKSPACE}\\jenkins\\emulator\\config.ini ${ANDROID_AVD_HOME}\\${ANDROID_EMULATOR_NAME}.avd")
+                    } catch (Exception e) {
+                        println e
+                    } finally {
+                        println utilsModule.executeCommand("${ANDROID_CMD_TOOL}\\avdmanager list avd")
+                    }
+                }
+            }
+        }
+
+        stage("Stop previous emulator session") {
+            when { expression { params.MOBILE_INSTALL_ANDROID_EMULATOR_FORCE_STOP == true } }
+            steps {
+                script {
+                    try {
+                        utilsModule.executeCommand("taskkill /F /im qemu-system-x86_64.exe")
+                        sleep(45)
+                    } catch (Exception e) {
+                        println e
+                    }
+                }
+            }
+        }
+
+        stage("Start default emulator") {
+            when { expression { params.MOBILE_INSTALL_ANDROID_EMULATOR_START == true } }
+            steps {
+                script {
+                    try {
+                        utilsModule.executeCommand("powershell -WindowStyle Hidden \"Start-Sleep 2; Start-Process ${ANDROID_EMULATOR}\\emulator @${ANDROID_EMULATOR_NAME}\"")
+                    } catch (Exception e) {
+                        println e
+                    }
+                }
+            }
+        }
+
+        stage("Verify default emulator started") {
+            when { expression { params.MOBILE_INSTALL_ANDROID_EMULATOR_START == true } }
+            steps {
+                script {
+                    println "Waiting for device booting..."
+                    sleep(90)
+                    max_attempt = 30
+                    started = false
+                    attempt = 0
+                    utilsModule.executeCommand("${ANDROID_PLATFORM_TOOL}\\adb kill-server")
+                    utilsModule.executeCommand("${ANDROID_PLATFORM_TOOL}\\adb devices")
+                    println "Waiting for device status..."
+                    while (!started && attempt < max_attempt) {
+                        response = ""
+                        try {
+                            response = utilsModule.executeCommand("${ANDROID_PLATFORM_TOOL}\\adb shell dumpsys battery")
+                        } catch (Exception e) {
+                            println e
+                        }
+                        println response
+                        if (response.contains("health: 2")) {
+                            started = true
+                            break
+                        } else {
+                            attempt++
+                            sleep(5)
+                        }
+                    }
+                    assert(started)
+                }
+            }
+        }
+
+    }
+}

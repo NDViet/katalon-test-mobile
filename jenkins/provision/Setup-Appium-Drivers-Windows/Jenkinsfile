@@ -1,0 +1,89 @@
+import hudson.model.*
+
+def utilsModule
+def paramsModule
+
+pipeline {
+    options {
+        skipDefaultCheckout()
+    }
+
+    agent {label params.AGENT_LABEL}
+
+    environment {
+        MOBILE_INSTALL_APPIUM_CHROMEDRIVER = "${params.MOBILE_INSTALL_APPIUM_CHROMEDRIVER}"
+        CHROME_DRIVER_DOWNLOAD = "${params.MOBILE_CHROME_DRIVER_DOWNLOAD}"
+        CHROME_DRIVER_PATH = "C:\\Users\\%USERNAME%\\.appium\\node_modules\\appium-uiautomator2-driver\\node_modules\\appium-chromedriver\\chromedriver\\win"
+    }
+
+    stages {
+        stage("Initialize") {
+            steps {
+                script {
+                    checkout scm
+                    utilsModule = load "jenkins/shared-libraries/utils.groovy"
+                    paramsModule = load "jenkins/shared-libraries/parameters.groovy"
+                    paramsModule.parametersForProvisioningInstallAppium(utilsModule)
+                }
+            }
+        }
+
+        stage("Install Appium") {
+            when { expression { params.MOBILE_INSTALL_APPIUM == true } }
+            steps {
+                script {
+                    try {
+                        utilsModule.executeCommand("npm install -g appium")
+                    } catch (Exception e) {
+                        println e
+                    } finally {
+                        println utilsModule.executeCommand("appium -v")
+                    }
+                }
+            }
+        }
+
+        stage("Install Appium drivers") {
+            when { expression { params.MOBILE_INSTALL_APPIUM_DRIVERS == true } }
+            steps {
+                script {
+                    try {
+                        utilsModule.executeCommand("set APPIUM_SKIP_CHROMEDRIVER_INSTALL=${MOBILE_INSTALL_APPIUM_CHROMEDRIVER} & appium driver install uiautomator2")
+                    } catch (Exception e) {
+                        println e
+                    } finally {
+                        println utilsModule.executeCommand("appium driver list --installed")
+                        if (MOBILE_INSTALL_APPIUM_CHROMEDRIVER == false) {
+                            println utilsModule.executeCommand("${CHROME_DRIVER_PATH}\\chromedriver.exe --version")
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("Install Appium ChromeDriver") {
+            when { expression { params.MOBILE_INSTALL_APPIUM_CHROMEDRIVER == true } }
+            steps {
+                script {
+                    try {
+                        utilsModule.executeCommand("mkdir \"${CHROME_DRIVER_PATH}\"")
+                    } catch (Exception e) {
+                        println e
+                    } finally {
+                        utilsModule.executeCommand("dir \"${CHROME_DRIVER_PATH}\"")
+                    }
+                    try {
+                        utilsModule.executeCommand("curl -k \"${CHROME_DRIVER_DOWNLOAD}\" -o \"${CHROME_DRIVER_PATH}\\chromedriver_win.zip\"")
+                        utilsModule.executeCommand("powershell -command \"Expand-Archive -Force \"${CHROME_DRIVER_PATH}\\chromedriver_win.zip\" -DestinationPath \"${CHROME_DRIVER_PATH}\"\"")
+                        utilsModule.executeCommand("powershell -command \"rm \"${CHROME_DRIVER_PATH}\\chromedriver_win.zip\"\"")
+                    } catch (Exception e) {
+                        println e
+                    } finally {
+                        println utilsModule.executeCommand("${CHROME_DRIVER_PATH}\\chromedriver.exe --version")
+                    }
+                }
+            }
+        }
+
+    }
+}
