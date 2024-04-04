@@ -113,7 +113,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        utilsModule.executeCommand("powershell -WindowStyle Hidden \"Start-Sleep 2; Start-Process ${ANDROID_EMULATOR}\\emulator @${ANDROID_EMULATOR_NAME}\"")
+                        utilsModule.executeCommand("set JENKINS_NODE_COOKIE=dontKillMe & powershell -WindowStyle Hidden \"Start-Sleep 2; Start-Process ${ANDROID_EMULATOR}\\emulator @${ANDROID_EMULATOR_NAME}\" & exit")
                     } catch (Exception e) {
                         println e
                     }
@@ -127,7 +127,7 @@ pipeline {
                 script {
                     println "Waiting for device booting..."
                     sleep(90)
-                    max_attempt = 30
+                    max_attempt = 60
                     started = false
                     attempt = 0
                     utilsModule.executeCommand("${ANDROID_PLATFORM_TOOL}\\adb kill-server")
@@ -146,7 +146,7 @@ pipeline {
                             break
                         } else {
                             attempt++
-                            sleep(5)
+                            sleep(10)
                         }
                     }
                     assert(started)

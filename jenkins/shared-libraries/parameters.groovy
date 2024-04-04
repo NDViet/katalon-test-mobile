@@ -53,7 +53,7 @@ def parametersForProvisioningStartEmulator(utilsModule) {
                                   ),
                                   string(
                                           name: 'ANDROID_SDK_MANAGER_NO_HTTPS',
-                                          defaultValue: utilsModule.createStringWithPreviousValue('--no-https', "${params.ANDROID_SDK_MANAGER_NO_HTTPS}"),
+                                          defaultValue: utilsModule.createStringWithPreviousValue('--no_https', "${params.ANDROID_SDK_MANAGER_NO_HTTPS}"),
                                           description: 'Android SDK Manager use HTTP only for download packages',
                                   ),
                                   string(
