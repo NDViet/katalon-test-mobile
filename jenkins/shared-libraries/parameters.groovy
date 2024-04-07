@@ -48,7 +48,7 @@ def parametersForProvisioningStartEmulator(utilsModule) {
           ),
           booleanParam(
             name: 'MOBILE_INSTALL_ANDROID_CMD_TOOL',
-            defaultValue: true,
+            defaultValue: utilsModule.createBooleanWithPreviousValue(true, "${params.MOBILE_INSTALL_ANDROID_CMD_TOOL}"),
             description: 'Install Android Commandline Tools',
           ),
           string(
@@ -63,7 +63,7 @@ def parametersForProvisioningStartEmulator(utilsModule) {
           ),
           booleanParam(
             name: 'MOBILE_INSTALL_ANDROID_IMAGE',
-            defaultValue: true,
+            defaultValue: utilsModule.createBooleanWithPreviousValue(true, "${params.MOBILE_INSTALL_ANDROID_IMAGE}"),
             description: 'Install Android system image',
           ),
           string(
@@ -88,17 +88,17 @@ def parametersForProvisioningStartEmulator(utilsModule) {
           ),
           booleanParam(
             name: 'MOBILE_INSTALL_ANDROID_EMULATOR_CREATE',
-            defaultValue: true,
+            defaultValue: utilsModule.createBooleanWithPreviousValue(true, "${params.MOBILE_INSTALL_ANDROID_EMULATOR_CREATE}"),
             description: 'Install create the default emulator',
           ),
           booleanParam(
             name: 'MOBILE_INSTALL_ANDROID_EMULATOR_FORCE_STOP',
-            defaultValue: true,
+            defaultValue: utilsModule.createBooleanWithPreviousValue(true, "${params.MOBILE_INSTALL_ANDROID_EMULATOR_FORCE_STOP}"),
             description: 'Force stop previous emulator session before starting new one',
           ),
           booleanParam(
             name: 'MOBILE_INSTALL_ANDROID_EMULATOR_START',
-            defaultValue: true,
+            defaultValue: utilsModule.createBooleanWithPreviousValue(true, "${params.MOBILE_INSTALL_ANDROID_EMULATOR_START}"),
             description: 'Start the default emulator',
           ),
         ]

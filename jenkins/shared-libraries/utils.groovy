@@ -67,7 +67,7 @@ static boolean isNull(def listParams) {
   return false
 }
 
-List createChoicesWithPreviousChoice(List defaultChoices, String previousChoice) {
+List createChoicesWithPreviousChoice(List defaultChoices, def previousChoice) {
   if (isNull([previousChoice])) {
     return defaultChoices
   }
@@ -76,14 +76,14 @@ List createChoicesWithPreviousChoice(List defaultChoices, String previousChoice)
   return choices
 }
 
-String createStringWithPreviousValue(String defaultValue, String previousValue) {
+String createStringWithPreviousValue(String defaultValue, def previousValue) {
   if (isNull([previousValue])) {
     return defaultValue
   }
   return previousValue
 }
 
-boolean createBooleanWithPreviousValue(boolean defaultValue, boolean previousValue) {
+boolean createBooleanWithPreviousValue(boolean defaultValue, def previousValue) {
   if (isNull([previousValue])) {
     return defaultValue
   }

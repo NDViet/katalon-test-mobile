@@ -22,7 +22,7 @@ pipeline {
         checkout scm
         utilsModule = load "jenkins/shared-libraries/utils.groovy"
         paramsModule = load "jenkins/shared-libraries/parameters.groovy"
-        paramsModule.parametersForProvisioningStartEmulator(utilsModule)
+        paramsModule.parametersForRunTestKatalon(utilsModule)
       }
     }
   }
