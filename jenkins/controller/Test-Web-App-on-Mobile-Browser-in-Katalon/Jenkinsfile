@@ -16,18 +16,18 @@ pipeline {
   TEST_OPS_API = "${params.TEST_OPS_API}"
   }
 
-  stage("Initialize") {
-    steps {
-      script {
-        checkout scm
-        utilsModule = load "jenkins/shared-libraries/utils.groovy"
-        paramsModule = load "jenkins/shared-libraries/parameters.groovy"
-        paramsModule.parametersForRunTestKatalon(utilsModule)
+	stages{
+    stage("Initialize") {
+      steps {
+        script {
+          checkout scm
+          utilsModule = load "jenkins/shared-libraries/utils.groovy"
+          paramsModule = load "jenkins/shared-libraries/parameters.groovy"
+          paramsModule.parametersForRunTestKatalon(utilsModule)
+        }
       }
     }
-  }
 
-	stages{
 		stage ('Checkout Code') {
 			steps {
 				script {
