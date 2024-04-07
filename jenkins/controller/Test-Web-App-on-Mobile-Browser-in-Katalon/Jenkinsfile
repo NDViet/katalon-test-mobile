@@ -12,8 +12,10 @@ pipeline {
   TEST_SUITE_PATH = "${params.TEST_SUITE_PATH}"
   PROFILE = "${params.PROFILE}"
   BROWSER_TYPE = "${params.BROWSER}"
+  EMULATOR_NAME = "${params.EMULATOR_NAME}"
   RETRY = "${params.RETRY}"
   TEST_OPS_API = "${params.TEST_OPS_API}"
+  CONFIG_WEBUI_AUTO_UPDATE_DRIVERS = "${params.CONFIG_WEBUI_AUTO_UPDATE_DRIVERS}"
   }
 
 	stages{
@@ -44,27 +46,52 @@ pipeline {
 			steps {
 				script {
 					try {
-						cleanUpDirectory("${WORKSPACE}/${REPORT_FOLDER}")
+						utilsModule.cleanUpDirectory("${WORKSPACE}/${REPORT_FOLDER}")
 					} catch (Exception err) {
 						echo "Error while cleanup Reports dir"
 						throw err
 					}
 					try {
-            String command ='"%s" -noSplash -runMode="console" -projectPath="%s" -retry=%s -testSuitePath="%s" -executionProfile="%s" -browserType="%s" --config -webui.autoUpdateDrivers=true'
+					  // Append extra arguments
+					  EXTRA_ARGS = []
+					  if (EMULATOR_NAME == null || EMULATOR_NAME == '') {
+              EMULATOR_NAME = utilsModule.getEmulatorName(BROWSER_TYPE)
+					  }
+            if (EMULATOR_NAME != '') {
+              EXTRA_ARGS.add("-deviceId=\"${EMULATOR_NAME}\"")
+            }
+            if(TEST_OPS_API != '') {
+              EXTRA_ARGS.add('-apiKey="' + utilsModule.maskingSecret('API_KEY') + '"')
+            }
+            if (EXTRA_ARGS.size() > 0) {
+              EXTRA_ARGS = EXTRA_ARGS.join(' ')
+            } else {
+              EXTRA_ARGS = ''
+            }
+            // Append extra config arguments
+					  EXTRA_ARG_CONFIG = []
+            if (CONFIG_WEBUI_AUTO_UPDATE_DRIVERS == true) {
+              EXTRA_ARG_CONFIG.add('-webui.autoUpdateDrivers=true')
+            }
+            if (EXTRA_ARG_CONFIG.size() > 0) {
+              EXTRA_ARG_CONFIG = '--config ' + EXTRA_ARG_CONFIG.join(' ')
+            } else {
+              EXTRA_ARG_CONFIG = ''
+            }
+            String command ='"%s" -noSplash -runMode="console" -projectPath="%s" -retry=%s -testSuitePath="%s" -executionProfile="%s" -browserType="%s" %s %s'
             command = String.format(command,
             "${ENGINE_DIR}" + '/'+ utilsModule.getKatalonExecutionFile(),
             PROJECT_PATH,
             RETRY,
             TEST_SUITE_PATH,
             PROFILE,
-            BROWSER_TYPE
+            BROWSER_TYPE,
+            EXTRA_ARGS,
+            EXTRA_ARG_CONFIG
             )
             command = utilsModule.replaceFileSeparator(command)
-            if(TEST_OPS_API != '') {
-              withCredentials([string(credentialsId: TEST_OPS_API, variable: 'KATALON_TEST_OPS_API')]) {
-                  command += ' -apiKey=' + utilsModule.maskingSecret('KATALON_TEST_OPS_API')
-                  utilsModule.executeCommand(command)
-              }
+            withCredentials([usernamePassword(credentialsId: TEST_OPS_API, usernameVariable: 'API_NAME', passwordVariable: 'API_KEY')]) {
+              utilsModule.executeCommand(command)
             }
 					} catch (Exception err) {
             echo "Error while running test"

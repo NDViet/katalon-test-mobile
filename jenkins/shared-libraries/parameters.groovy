@@ -156,7 +156,7 @@ def parametersForRunTestKatalon(utilsModule) {
           ),
           string(
             name: 'EMULATOR_NAME',
-            defaultValue: utilsModule.createStringWithPreviousValue(utilsModule.getEmulatorName("${params.BROWSER}"), "${params.EMULATOR_NAME}"),
+            defaultValue: utilsModule.createStringWithPreviousValue('', "${params.EMULATOR_NAME}"),
             description: 'Emulator name for mobile browser selected'
           ),
           string(
@@ -170,6 +170,11 @@ def parametersForRunTestKatalon(utilsModule) {
             description: 'The API key to access Katalon TestOps',
             credentialType: 'Username with password',
             required: false
+          ),
+          booleanParam(
+            name: 'CONFIG_WEBUI_AUTO_UPDATE_DRIVERS',
+            defaultValue: utilsModule.createBooleanWithPreviousValue(false, "${params.CONFIG_WEBUI_AUTO_UPDATE_DRIVERS}"),
+            description: 'Set configuration to auto update WebUI drivers',
           ),
         ]
       )
