@@ -1,0 +1,90 @@
+pipeline {
+
+  agent { label params.AGENT_LABEL }
+
+  environment {
+  GIT_CREDENTIAL = "${params.GIT_CREDENTIAL}"
+  REPO_URL = "${params.REPO_URL}"
+  BRANCH = "${params.BRANCH}"
+  REPORT_FOLDER = "Reports"
+  ENGINE_DIR = "${params.KATALON_ENGINE_DIR}"
+  PROJECT_PATH = "${WORKSPACE}"
+  TEST_SUITE_PATH = "${params.TEST_SUITE_PATH}"
+  PROFILE = "${params.PROFILE}"
+  BROWSER_TYPE = "${params.BROWSER}"
+  RETRY = "${params.RETRY}"
+  TEST_OPS_API = "${params.TEST_OPS_API}"
+  }
+
+  stage("Initialize") {
+    steps {
+      script {
+        checkout scm
+        utilsModule = load "jenkins/shared-libraries/utils.groovy"
+        paramsModule = load "jenkins/shared-libraries/parameters.groovy"
+        paramsModule.parametersForProvisioningStartEmulator(utilsModule)
+      }
+    }
+  }
+
+	stages{
+		stage ('Checkout Code') {
+			steps {
+				script {
+					checkout([$class: 'GitSCM',
+					branches: [[name: "${BRANCH}"]],
+					extensions: [[$class: 'CleanBeforeCheckout']],
+					submoduleCfg: [],
+					userRemoteConfigs: [[credentialsId: "${GIT_CREDENTIAL}", url: "${REPO_URL}"]]])
+				}
+			}
+		}
+
+		stage ('Run Test') {
+			steps {
+				script {
+					try {
+						cleanUpDirectory("${WORKSPACE}/${REPORT_FOLDER}")
+					} catch (Exception err) {
+						echo "Error while cleanup Reports dir"
+						throw err
+					}
+					try {
+            String command ='"%s" -noSplash -runMode="console" -projectPath="%s" -retry=%s -testSuitePath="%s" -executionProfile="%s" -browserType="%s" --config -webui.autoUpdateDrivers=true'
+            command = String.format(command,
+            "${ENGINE_DIR}" + '/'+ utilsModule.getKatalonExecutionFile(),
+            PROJECT_PATH,
+            RETRY,
+            TEST_SUITE_PATH,
+            PROFILE,
+            BROWSER_TYPE
+            )
+            command = utilsModule.replaceFileSeparator(command)
+            if(TEST_OPS_API != '') {
+              withCredentials([string(credentialsId: TEST_OPS_API, variable: 'KATALON_TEST_OPS_API')]) {
+                  command += ' -apiKey=' + utilsModule.maskingSecret('KATALON_TEST_OPS_API')
+                  utilsModule.executeCommand(command)
+              }
+            }
+					} catch (Exception err) {
+            echo "Error while running test"
+						throw err
+					}
+				}
+			}
+		}
+	}
+
+	post {
+		always {
+			script {
+				archiveArtifacts artifacts: "**/${REPORT_FOLDER}/**/*.*", fingerprint: true, allowEmptyArchive: true
+				junit(
+					allowEmptyResults: true,
+					testResults: '**/JUnit_Report.xml',
+					keepLongStdio: true
+				)
+			}
+		}
+	}
+}

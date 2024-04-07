@@ -44,7 +44,7 @@ pipeline {
                 script {
                     try {
                         utilsModule.executeCommand("curl -k \"${ANDROID_CMD_TOOL_DOWNLOAD}\" -o \"${ANDROID_HOME}\\commandlinetools.zip\"")
-                        utilsModule.executeCommand("powershell -Command \"Remove-Item \"${ANDROID_HOME}\\cmdline-tools\" -Recurse -Force -ErrorAction SilentlyContinue\"")
+                        utilsModule.cleanUpDirectory("${ANDROID_HOME}\\cmdline-tools")
                         utilsModule.executeCommand("powershell -Command \"Expand-Archive -Force \"${ANDROID_HOME}\\commandlinetools.zip\" -DestinationPath \"${ANDROID_HOME}\"\"")
                         utilsModule.executeCommand("${ANDROID_HOME}\\cmdline-tools\\bin\\sdkmanager --sdk_root=${ANDROID_HOME} ${ANDROID_SDK_MANAGER_NO_HTTPS} \"cmdline-tools;latest\"")
                     } catch (Exception e) {

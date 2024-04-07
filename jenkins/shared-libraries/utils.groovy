@@ -1,47 +1,93 @@
 import hudson.model.*
 
 def executeCommand(def command) {
-    echo "${command}"
-    String response = ''
-    try {
-        if (isUnix()) {
-            response = sh(returnStdout: true, script: "${command}").trim()
-        }
-        else {
-            response = bat(returnStdout: true, script: "${command}").trim().readLines().drop(1).join(" ")
-        }
-    } catch (Exception err) {
-        echo "${response}"
-        throw err
+  print "${command}"
+  def response
+  try {
+    if (isUnix()) {
+      response = sh(returnStdout: true, script: "${command}").trim()
+    } else {
+      response = bat(returnStdout: true, script: "${command}").trim().readLines().drop(1).join("\\n")
     }
-    return response
+  } catch (Exception err) {
+    print "${response}"
+    throw err
+  }
+  return response
+}
+
+def maskingSecret(def variable) {
+  if (isUnix()) {
+    return '${' + variable + '}'
+  } else {
+    return '%' + variable + '%'
+  }
+}
+
+def cleanUpDirectory(def target) {
+  if (isUnix()) {
+    executeCommand('rm -rf "' + target + '"')
+  } else {
+    target = replaceFileSeparator(target)
+    executeCommand('if exist "' + target + '" rmdir /S /Q "' + target + '"')
+  }
+}
+
+def replaceFileSeparator(def command) {
+  if (isUnix()) {
+    return command
+  } else {
+    return command.replaceAll("/", "\\\\")
+  }
+}
+
+def getKatalonExecutionFile() {
+  if (isUnix()) {
+    return 'katalonc'
+  } else {
+    return 'katalonc.exe'
+  }
+}
+
+def getEmulatorName(def browser) {
+  if (browser == 'Android') {
+    return 'emulator-5554'
+  }
+  return ''
 }
 
 static boolean isNull(def listParams) {
-    for(def value : listParams) {
-        if(value == null) {
-            return true
-        } else if(value == "null") {
-            return true
-        }
+  for (def value : listParams) {
+    if (value == null) {
+      return true
+    } else if (value == "null") {
+      return true
     }
-    return false
+  }
+  return false
 }
 
 List createChoicesWithPreviousChoice(List defaultChoices, String previousChoice) {
-    if (isNull([previousChoice])) {
-        return defaultChoices
-    }
-    choices = defaultChoices.minus(previousChoice)
-    choices.add(0, previousChoice)
-    return choices
+  if (isNull([previousChoice])) {
+    return defaultChoices
+  }
+  choices = defaultChoices.minus(previousChoice)
+  choices.add(0, previousChoice)
+  return choices
 }
 
 String createStringWithPreviousValue(String defaultValue, String previousValue) {
-    if (isNull([previousValue])) {
-        return defaultValue
-    }
-    return previousValue
+  if (isNull([previousValue])) {
+    return defaultValue
+  }
+  return previousValue
+}
+
+boolean createBooleanWithPreviousValue(boolean defaultValue, boolean previousValue) {
+  if (isNull([previousValue])) {
+    return defaultValue
+  }
+  return previousValue
 }
 
 return this
