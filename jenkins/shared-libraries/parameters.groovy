@@ -140,6 +140,11 @@ def parametersForRunTestKatalon(utilsModule) {
             description: 'The directory to access Katalon Engine binary'
           ),
           string(
+            name: 'PROJECT_PATH',
+            defaultValue: utilsModule.createStringWithPreviousValue('/', "${params.PROJECT_PATH}"),
+            description: 'The path to the project'
+          ),
+          string(
             name: 'TEST_SUITE_PATH',
             defaultValue: utilsModule.createStringWithPreviousValue('', "${params.TEST_SUITE_PATH}"),
             description: 'The path to the test suite'

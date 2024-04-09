@@ -1,7 +1,7 @@
 import hudson.model.*
 
 def executeCommand(def command) {
-  print "${command}"
+  println "${command}"
   def response
   try {
     if (isUnix()) {
@@ -10,7 +10,7 @@ def executeCommand(def command) {
       response = bat(returnStdout: true, script: "${command}").trim().readLines().drop(1).join("\\n")
     }
   } catch (Exception err) {
-    print "${response}"
+    println "${response}"
     throw err
   }
   return response

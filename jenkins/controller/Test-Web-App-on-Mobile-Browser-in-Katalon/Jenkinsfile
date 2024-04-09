@@ -3,19 +3,19 @@ pipeline {
   agent { label params.AGENT_LABEL }
 
   environment {
-  GIT_CREDENTIAL = "${params.GIT_CREDENTIAL}"
-  REPO_URL = "${params.REPO_URL}"
-  BRANCH = "${params.BRANCH}"
-  REPORT_FOLDER = "Reports"
-  ENGINE_DIR = "${params.KATALON_ENGINE_DIR}"
-  PROJECT_PATH = "${WORKSPACE}"
-  TEST_SUITE_PATH = "${params.TEST_SUITE_PATH}"
-  PROFILE = "${params.PROFILE}"
-  BROWSER_TYPE = "${params.BROWSER}"
-  EMULATOR_NAME = "${params.EMULATOR_NAME}"
-  RETRY = "${params.RETRY}"
-  TEST_OPS_API = "${params.TEST_OPS_API}"
-  CONFIG_WEBUI_AUTO_UPDATE_DRIVERS = "${params.CONFIG_WEBUI_AUTO_UPDATE_DRIVERS}"
+    GIT_CREDENTIAL = "${params.GIT_CREDENTIAL}"
+    REPO_URL = "${params.REPO_URL}"
+    BRANCH = "${params.BRANCH}"
+    REPORT_FOLDER = "Reports"
+    ENGINE_DIR = "${params.KATALON_ENGINE_DIR}"
+    PROJECT_PATH = "${params.PROJECT_PATH}"
+    TEST_SUITE_PATH = "${params.TEST_SUITE_PATH}"
+    PROFILE = "${params.PROFILE}"
+    BROWSER_TYPE = "${params.BROWSER}"
+    EMULATOR_NAME = "${params.EMULATOR_NAME}"
+    RETRY = "${params.RETRY}"
+    TEST_OPS_API = "${params.TEST_OPS_API}"
+    CONFIG_WEBUI_AUTO_UPDATE_DRIVERS = "${params.CONFIG_WEBUI_AUTO_UPDATE_DRIVERS}"
   }
 
 	stages{
@@ -78,10 +78,14 @@ pipeline {
             } else {
               EXTRA_ARG_CONFIG = ''
             }
+            TEST_PROJECT_PATH = "${WORKSPACE}"
+            if (PROJECT_PATH != null && PROJECT_PATH != '') {
+              TEST_PROJECT_PATH = "${WORKSPACE}" + "\\${PROJECT_PATH}"
+            }
             String command ='"%s" -noSplash -runMode="console" -projectPath="%s" -retry=%s -testSuitePath="%s" -executionProfile="%s" -browserType="%s" %s %s'
             command = String.format(command,
             "${ENGINE_DIR}" + '/'+ utilsModule.getKatalonExecutionFile(),
-            PROJECT_PATH,
+            TEST_PROJECT_PATH,
             RETRY,
             TEST_SUITE_PATH,
             PROFILE,
@@ -105,6 +109,11 @@ pipeline {
 	post {
 		always {
 			script {
+			  try {
+			    utilsModule.executeCommand("taskkill /F /im node.exe")
+			  } catch (Exception e) {
+			    println e
+			  }
 				archiveArtifacts artifacts: "**/${REPORT_FOLDER}/**/*.*", fingerprint: true, allowEmptyArchive: true
 				junit(
 					allowEmptyResults: true,
